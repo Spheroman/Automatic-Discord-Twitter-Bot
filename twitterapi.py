@@ -11,38 +11,46 @@ api_secrets = data["API SECRETS"]
 access_token = data["ACCESS TOKEN"]
 access_secret = data["ACCESS SECRET"]
 
-client = tweepy.Client(consumer_key=api_key,
-                       consumer_secret=api_secrets,
-                       access_token=access_token,
-                       access_token_secret=access_secret)
+auth = tweepy.OAuth1UserHandler(
+    api_key,
+    api_secrets,
+    access_token,
+    access_secret
+)
+api = tweepy.API(auth)
 
 
-def main(message):
+def retweet(message):
     # Authenticate to Twitter
     last = ""
     for i in message.split("/"):
         last = i
-    client.retweet(last.split("?")[0])
+    return api.retweet(last.split("?")[0])
 
 
-def tweet_image(url, message):
-    auth = tweepy.OAuth1UserHandler(
-       api_key,
-       api_secrets,
-       access_token,
-       access_secret
-    )
+def unretweet(tweet):
+    api.unretweet(tweet)
 
-    api = tweepy.API(auth)
 
-    filename = 'temp.jpg'
-    request = requests.get(url, stream=True)
-    if request.status_code == 200:
-        with open(filename, 'wb') as image:
-            for chunk in request:
-                image.write(chunk)
-        media = api.media_upload(filename=filename)
-        api.update_status(status=message, media_ids=[media.media_id_string])
-        os.remove(filename)
-    else:
-        print("Unable to download image")
+def reply(message, tweet):
+    return api.update_status(status="@PTCGDecklists "+message, in_reply_to_status_id=tweet.id)
+
+
+def quote_tweet(url, message):
+    return api.update_status(status=url + " " + message)
+
+
+def tweet_image(urls, message):
+    media_id = []
+    for url in urls:
+        filename = 'temp.jpg'
+        request = requests.get(url, stream=True)
+        if request.status_code == 200:
+            with open(filename, 'wb') as image:
+                for chunk in request:
+                    image.write(chunk)
+            media_id.append(api.media_upload(filename=filename).media_id_string)
+            os.remove(filename)
+        else:
+            print("Unable to download image")
+    return api.update_status(status=message, media_ids=media_id)
