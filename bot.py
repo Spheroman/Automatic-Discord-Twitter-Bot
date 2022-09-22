@@ -7,7 +7,6 @@ with open("setup.json", "r") as read_file:
 
 token = data["DISCORD TOKEN"]
 
-
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -17,8 +16,9 @@ sender_ids = data["USER IDS"]
 
 buffer_last = None
 buffer_message = None
-buffer_reply = None
+buffer_reply = "filler"
 buffer_type = None
+
 
 @client.event
 async def on_ready():
@@ -40,17 +40,19 @@ async def on_message(message):
                 buffer_last = twitterapi.tweet_image(buffer, "")
                 buffer_type = "img"
                 buffer_reply = None
+                buffer_message = message
             else:
                 idx = message.content.find('https://twitter.com')
                 if idx >= 0:
-                    buffer_message = message.content
+                    buffer_message = message
                     buffer_last = twitterapi.retweet(message.content)
                     buffer_type = "rt"
                     buffer_reply = None
                 else:
                     if buffer_reply is None:
-                        await message.add_reaction("💬")
-                        buffer_reply = message
+                        if message.author == buffer_message.author:
+                            await message.add_reaction("💬")
+                            buffer_reply = message
 
 
 @client.event
@@ -64,9 +66,8 @@ async def on_reaction_add(reaction, user):
                     buffer_type = None
                 if buffer_type == "rt":
                     twitterapi.unretweet(buffer_last.id)
-                    twitterapi.quote_tweet(buffer_reply.content, buffer_message)
+                    twitterapi.quote_tweet(buffer_reply.content, buffer_message.content)
                     buffer_type = None
-
 
 
 client.run(token)
