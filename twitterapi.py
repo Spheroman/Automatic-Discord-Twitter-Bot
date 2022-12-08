@@ -58,6 +58,8 @@ def tweet_image(urls, message):
 
 def is_url_image(image_url):
     image_formats = ("image/png", "image/jpeg", "image/jpg")
+    if not image_url.startswith("http"):
+        return False
     r = requests.head(image_url)
     if r.headers["content-type"] in image_formats:
         return True
