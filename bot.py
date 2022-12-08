@@ -1,6 +1,7 @@
 import twitterapi
 import discord
 import json
+import time
 
 with open("setup.json", "r") as read_file:
     data = json.load(read_file)
@@ -15,6 +16,7 @@ channels = data["CHANNELS"]
 sender_ids = data["USER IDS"]
 
 buffer_last = None
+message_time = time.time()
 buffer_message = None
 buffer_reply = "filler"
 buffer_type = None
@@ -27,20 +29,23 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    global buffer_last, buffer_type, buffer_message, buffer_reply
+    global buffer_last, buffer_type, buffer_message, buffer_reply, message_time
     if message.author == client.user:
         return
     if message.channel.id in channels:
         if message.author.id in sender_ids:
-            if message.attachments:
+            if message.attachments or twitterapi.is_url_image(message.content):
                 buffer = []
                 for attachment in message.attachments:
                     if 'image' in attachment.content_type:
                         buffer.append(attachment)
+                if twitterapi.is_url_image(message.content):
+                    buffer.append(message.content)
                 buffer_last = twitterapi.tweet_image(buffer, "")
                 buffer_type = "img"
                 buffer_reply = None
                 buffer_message = message
+                message_time = time.time()
             else:
                 idx = message.content.find('https://twitter.com')
                 if idx >= 0:
@@ -48,8 +53,9 @@ async def on_message(message):
                     buffer_last = twitterapi.retweet(message.content)
                     buffer_type = "rt"
                     buffer_reply = None
+                    message_time = time.time()
                 else:
-                    if buffer_reply is None:
+                    if buffer_reply is None and time.time() - message_time < 120:
                         if message.author == buffer_message.author:
                             await message.add_reaction("💬")
                             buffer_reply = message

@@ -33,7 +33,7 @@ def unretweet(tweet):
 
 
 def reply(message, tweet):
-    return api.update_status(status="@PTCGDecklists "+message, in_reply_to_status_id=tweet.id)
+    return api.update_status(status="@PTCGDecklists " + message, in_reply_to_status_id=tweet.id)
 
 
 def quote_tweet(url, message):
@@ -54,3 +54,11 @@ def tweet_image(urls, message):
         else:
             print("Unable to download image")
     return api.update_status(status=message, media_ids=media_id)
+
+
+def is_url_image(image_url):
+    image_formats = ("image/png", "image/jpeg", "image/jpg")
+    r = requests.head(image_url)
+    if r.headers["content-type"] in image_formats:
+        return True
+    return False
