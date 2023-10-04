@@ -11,6 +11,13 @@ api_secrets = data["API SECRETS"]
 access_token = data["ACCESS TOKEN"]
 access_secret = data["ACCESS SECRET"]
 
+client = tweepy.Client(
+    consumer_key=api_key,
+    consumer_secret=api_secrets,
+    access_token=access_token,
+    access_token_secret=access_secret
+)
+
 auth = tweepy.OAuth1UserHandler(
     api_key,
     api_secrets,
@@ -21,15 +28,11 @@ api = tweepy.API(auth)
 
 
 def retweet(message):
-    # Authenticate to Twitter
-    last = ""
-    for i in message.split("/"):
-        last = i
-    return api.retweet(last.split("?")[0])
-
+    message = message[:message.find("?")]
+    return client.create_tweet(text=message)
 
 def unretweet(tweet):
-    api.unretweet(tweet)
+    return client.delete_tweet(tweet)
 
 
 def reply(message, tweet):
@@ -37,7 +40,7 @@ def reply(message, tweet):
 
 
 def quote_tweet(url, message):
-    return api.update_status(status=url + " " + message)
+    return client.create_tweet(text=url + " " + message)
 
 
 def tweet_image(urls, message):

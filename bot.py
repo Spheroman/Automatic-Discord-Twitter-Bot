@@ -1,3 +1,5 @@
+import requests
+
 import twitterapi
 import discord
 import json
@@ -18,7 +20,7 @@ sender_ids = data["USER IDS"]
 buffer_last = None
 message_time = time.time()
 buffer_message = None
-buffer_reply = "filler"
+buffer_reply = None
 buffer_type = None
 
 
@@ -34,31 +36,19 @@ async def on_message(message):
         return
     if message.channel.id in channels:
         if message.author.id in sender_ids:
-            if message.attachments or twitterapi.is_url_image(message.content):
-                buffer = []
-                for attachment in message.attachments:
-                    if 'image' in attachment.content_type:
-                        buffer.append(attachment)
-                if twitterapi.is_url_image(message.content):
-                    buffer.append(message.content)
-                buffer_last = twitterapi.tweet_image(buffer, "")
-                buffer_type = "img"
-                buffer_reply = None
+            idx = message.content.find('https://twitter.com')
+            xidx = message.content.find('https://x.com')
+            if idx >= 0 or xidx >= 0:
                 buffer_message = message
+                buffer_last = twitterapi.retweet(message.content[idx if idx >= 0 else xidx:])
+                buffer_type = "rt"
+                buffer_reply = None
                 message_time = time.time()
             else:
-                idx = message.content.find('https://twitter.com')
-                if idx >= 0:
-                    buffer_message = message
-                    buffer_last = twitterapi.retweet(message.content)
-                    buffer_type = "rt"
-                    buffer_reply = None
-                    message_time = time.time()
-                else:
-                    if buffer_reply is None and time.time() - message_time < 120:
-                        if message.author == buffer_message.author:
-                            await message.add_reaction("💬")
-                            buffer_reply = message
+                if buffer_reply is None and time.time() - message_time < 120:
+                    if message.author == buffer_message.author:
+                        await message.add_reaction("💬")
+                        buffer_reply = message
 
 
 @client.event
@@ -67,11 +57,8 @@ async def on_reaction_add(reaction, user):
     if buffer_reply is reaction.message:
         if reaction.emoji == "💬":
             if buffer_reply.author == user:
-                if buffer_type == "img":
-                    twitterapi.reply(buffer_reply.content, buffer_last)
-                    buffer_type = None
                 if buffer_type == "rt":
-                    twitterapi.unretweet(buffer_last.id)
+                    twitterapi.unretweet(buffer_last.data["id"])
                     twitterapi.quote_tweet(buffer_reply.content, buffer_message.content)
                     buffer_type = None
 
