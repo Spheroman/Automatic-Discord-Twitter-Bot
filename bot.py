@@ -8,6 +8,9 @@ import time
 with open("setup.json", "r") as read_file:
     data = json.load(read_file)
 
+with open("past.json", "r") as read_file:
+    past = json.load(read_file)
+
 token = data["DISCORD TOKEN"]
 
 intents = discord.Intents.default()
@@ -40,7 +43,11 @@ async def on_message(message):
             xidx = message.content.find('https://x.com')
             if idx >= 0 or xidx >= 0:
                 buffer_message = message
-                buffer_last = twitterapi.retweet(message.content[idx if idx >= 0 else xidx:])
+                text = (message.content[:idx if idx >= 0 else xidx])[:message.find("?")]
+                if text in past:
+                    return
+                past.append(text)
+                buffer_last = twitterapi.retweet(text)
                 buffer_type = "rt"
                 buffer_reply = None
                 message_time = time.time()

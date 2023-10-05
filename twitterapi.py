@@ -28,7 +28,6 @@ api = tweepy.API(auth)
 
 
 def retweet(message):
-    message = message[:message.find("?")]
     return client.create_tweet(text=message)
 
 def unretweet(tweet):
